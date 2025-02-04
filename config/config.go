@@ -43,6 +43,15 @@ func LoadEnvVars() {
 	}
 }
 
+// getDatabaseName returns the correct database name based on the GO_ENV value
+func getDatabaseName() string {
+	goEnv := os.Getenv("GO_ENV")
+	if goEnv == "test" {
+		return os.Getenv("TEST_DB_NAME") // Use test database name
+	}
+	return os.Getenv("DB_NAME") // Use default database name for other environments
+}
+
 // ConnectDatabase connects to the database and returns a Database interface
 func ConnectDatabase() (Database, error) {
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s",
@@ -50,7 +59,7 @@ func ConnectDatabase() (Database, error) {
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
-		os.Getenv("DB_NAME"),
+		getDatabaseName(),
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
