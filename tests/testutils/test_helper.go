@@ -2,15 +2,18 @@ package testutils
 
 import (
 	"log"
+	"os"
 	"testing"
 
 	"github.com/EmelinDanila/task-manager-api/config"
+
 	"github.com/EmelinDanila/task-manager-api/models"
 )
 
 // SetupTestDB initializes the test database
 func SetupTestDB(t *testing.T) config.Database {
 	// Load environment variables
+	os.Setenv("GO_ENV", "test")
 	config.LoadEnvVars()
 
 	// Connect to the database

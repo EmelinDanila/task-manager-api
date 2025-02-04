@@ -59,6 +59,8 @@ func TestMockConnectDatabase(t *testing.T) {
 // Test for checking real database connection
 func TestConnectDatabase(t *testing.T) {
 	// Load environment variables
+	oldEnv := os.Getenv("GO_ENV")
+	os.Setenv("GO_ENV", "test")
 	config.LoadEnvVars()
 
 	// Attempt to connect to the database
@@ -71,4 +73,6 @@ func TestConnectDatabase(t *testing.T) {
 	// Close the database connection
 	err = db.Close()
 	assert.NoError(t, err, "Close should not return an error")
+
+	os.Setenv("GO_ENV", oldEnv)
 }

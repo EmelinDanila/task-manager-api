@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"os"
 	"testing"
 
 	"github.com/EmelinDanila/task-manager-api/models"
@@ -11,6 +12,8 @@ import (
 )
 
 func TestTaskRepository(t *testing.T) {
+	// Save the current environment
+	oldEnv := os.Getenv("GO_ENV")
 	// Initialize the test database
 	db := testutils.SetupTestDB(t)
 	defer testutils.TeardownTestDB(db)
@@ -116,4 +119,7 @@ func TestTaskRepository(t *testing.T) {
 		assert.Error(t, err) // We expect an error because the task should be deleted
 		assert.Equal(t, gorm.ErrRecordNotFound, err)
 	})
+
+	// Restore the original environment
+	os.Setenv("GO_ENV", oldEnv)
 }

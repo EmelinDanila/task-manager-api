@@ -1,44 +1,24 @@
 package tests
 
 import (
+	"os"
 	"testing"
 
-	"github.com/EmelinDanila/task-manager-api/config"
 	"github.com/EmelinDanila/task-manager-api/models"
+	"github.com/EmelinDanila/task-manager-api/tests/testutils"
 	"github.com/stretchr/testify/assert"
 )
 
-func setupTestDB(t *testing.T) config.Database {
-	// Load environment variables
-	config.LoadEnvVars()
-
-	// Connect to the database through the Database interface
-	db, err := config.ConnectDatabase()
-	if err != nil {
-		t.Fatalf("Could not connect to the database: %v", err)
-	}
-
-	// Create the table for the Task model
-	err = db.GetDB().AutoMigrate(&models.Task{})
-	if err != nil {
-		t.Fatalf("Could not migrate database: %v", err)
-	}
-
-	return db
-}
-
-func teardownTestDB(db config.Database) {
-	// Drop the table after the tests
-	db.GetDB().Migrator().DropTable(&models.Task{})
-	db.Close()
-}
-
 func TestTaskModel(t *testing.T) {
+	// Save the current environment
+	oldEnv := os.Getenv("GO_ENV")
+
 	// Set up the test database
-	db := setupTestDB(t)
-	defer teardownTestDB(db)
+	db := testutils.SetupTestDB(t)
+	defer testutils.TeardownTestDB(db)
 
 	// Create a test task
+
 	task := models.Task{
 		Title:       "Test Task",
 		Description: "This is a test task",
@@ -58,4 +38,7 @@ func TestTaskModel(t *testing.T) {
 	assert.Equal(t, task.Title, savedTask.Title)
 	assert.Equal(t, task.Description, savedTask.Description)
 	assert.Equal(t, task.Status, savedTask.Status)
+
+	// Restore the original environment
+	os.Setenv("GO_ENV", oldEnv)
 }
