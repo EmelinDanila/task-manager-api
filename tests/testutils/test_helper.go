@@ -31,10 +31,28 @@ func SetupTestDB(t *testing.T) config.Database {
 	return db
 }
 
+// ClearTestDB clears the test database
+func ClearTestDB(db config.Database) {
+	var tables []string
+	db.GetDB().Raw("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'").Scan(&tables)
+
+	for _, table := range tables {
+		if err := db.GetDB().Exec("TRUNCATE TABLE " + table + " RESTART IDENTITY CASCADE").Error; err != nil {
+			log.Fatalf("Failed to clear table %s: %v", table, err)
+		}
+	}
+}
+
 // TeardownTestDB cleans up the test database
 func TeardownTestDB(db config.Database) {
-	// Drop the Task table after tests
-	db.GetDB().Migrator().DropTable(&models.Task{})
+	var tables []string
+	db.GetDB().Raw("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'").Scan(&tables)
+
+	for _, table := range tables {
+		if err := db.GetDB().Migrator().DropTable(table); err != nil {
+			log.Printf("Failed to drop table %s: %v", table, err)
+		}
+	}
 
 	// Close the database connection
 	err := db.Close()
