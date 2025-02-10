@@ -11,10 +11,10 @@ import (
 )
 
 func TestAuthService_GenerateToken(t *testing.T) {
-	os.Setenv("JWT_SECRET", "test_secret") // Устанавливаем временный секретный ключ для тестов.
+	os.Setenv("JWT_SECRET", "test_secret") // Set a temporary secret key for testing.
 	authService := services.NewAuthService()
 
-	// Тестируем создание токена.
+	// Test token generation.
 	userID := uint(123)
 	token, err := authService.GenerateToken(userID)
 	assert.NoError(t, err)
@@ -22,35 +22,35 @@ func TestAuthService_GenerateToken(t *testing.T) {
 }
 
 func TestAuthService_VerifyToken(t *testing.T) {
-	os.Setenv("JWT_SECRET", "test_secret") // Устанавливаем временный секретный ключ для тестов.
+	os.Setenv("JWT_SECRET", "test_secret") // Set a temporary secret key for testing.
 	authService := services.NewAuthService()
 
-	// Создаем токен и проверяем его.
+	// Generate and verify the token.
 	userID := uint(123)
 	token, err := authService.GenerateToken(userID)
 	assert.NoError(t, err)
 
-	// Проверяем валидность токена.
+	// Validate the token.
 	parsedUserID, err := authService.VerifyToken(token)
 	assert.NoError(t, err)
 	assert.Equal(t, userID, parsedUserID, "Parsed userID should match the original")
 }
 
 func TestAuthService_ParseToken(t *testing.T) {
-	os.Setenv("JWT_SECRET", "test_secret") // Устанавливаем временный секретный ключ для тестов.
+	os.Setenv("JWT_SECRET", "test_secret") // Set a temporary secret key for testing.
 	authService := services.NewAuthService()
 
-	// Создаем токен.
+	// Generate the token.
 	userID := uint(123)
 	token, err := authService.GenerateToken(userID)
 	assert.NoError(t, err)
 
-	// Парсим токен.
+	// Parse the token.
 	parsedToken, err := authService.ParseToken(token)
 	assert.NoError(t, err)
 	assert.NotNil(t, parsedToken, "Parsed token should not be nil")
 
-	// Проверяем claims.
+	// Verify claims.
 	if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok && parsedToken.Valid {
 		assert.Equal(t, float64(userID), claims["userID"], "Claims should contain the correct userID")
 		assert.True(t, claims["exp"].(float64) > float64(time.Now().Unix()), "Token should not be expired")
@@ -63,7 +63,7 @@ func TestAuthService_InvalidToken(t *testing.T) {
 	os.Setenv("JWT_SECRET", "test_secret")
 	authService := services.NewAuthService()
 
-	// Пробуем парсить недействительный токен.
+	// Attempt to parse an invalid token.
 	_, err := authService.VerifyToken("invalid_token")
 	assert.Error(t, err, "Invalid token should return an error")
 }

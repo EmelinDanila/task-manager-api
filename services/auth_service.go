@@ -23,7 +23,7 @@ type authService struct {
 func NewAuthService() AuthService {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		secret = "default_secret" // Fallback for testing (avoid in production)
+		secret = "default_secret" // Fallback for testing (avoid in production).
 	}
 	return &authService{secretKey: secret}
 }
@@ -32,7 +32,7 @@ func NewAuthService() AuthService {
 func (a *authService) GenerateToken(userID uint) (string, error) {
 	claims := jwt.MapClaims{
 		"userID": userID,
-		"exp":    time.Now().Add(time.Hour * 24).Unix(), // 24-hour expiration
+		"exp":    time.Now().Add(time.Hour * 24).Unix(), // 24-hour expiration.
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(a.secretKey))
