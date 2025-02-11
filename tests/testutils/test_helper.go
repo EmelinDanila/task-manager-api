@@ -28,6 +28,12 @@ func SetupTestDB(t *testing.T) config.Database {
 		t.Fatalf("Could not migrate database: %v", err)
 	}
 
+	// Migrate the User model
+	err = db.GetDB().AutoMigrate(&models.User{})
+	if err != nil {
+		t.Fatalf("Could not migrate database: %v", err)
+	}
+
 	return db
 }
 
