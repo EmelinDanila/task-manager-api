@@ -1,51 +1,42 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
 	"github.com/EmelinDanila/task-manager-api/services"
+	"github.com/gin-gonic/gin"
 )
 
-type key string
-
-const UserIDKey key = "userID"
-
-// AuthMiddleware checks for the presence and validity of the JWT token.
-func AuthMiddleware(authService services.AuthService) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Extracting the token from the Authorization header
-			authHeader := r.Header.Get("Authorization")
-			if authHeader == "" {
-				http.Error(w, "Authorization header missing", http.StatusUnauthorized)
-				return
-			}
-
-			// Checking the header format
-			token := strings.TrimPrefix(authHeader, "Bearer ")
-			if token == authHeader { // If "Bearer" is not found
-				http.Error(w, "Invalid Authorization header format", http.StatusUnauthorized)
-				return
-			}
-
-			// Verifying the token
-			userID, err := authService.VerifyToken(token)
-			if err != nil {
-				http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
-				return
-			}
-
-			// Adding userID to the context
-			ctx := context.WithValue(r.Context(), UserIDKey, userID)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
+func AuthMiddleware(authService services.AuthService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header missing"})
+			c.Abort()
+			return
+		}
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		if token == authHeader {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid Authorization header format"})
+			c.Abort()
+			return
+		}
+		userID, err := authService.VerifyToken(token)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.Abort()
+			return
+		}
+		c.Set("userID", userID)
+		c.Next()
 	}
 }
 
-// GetUserID extracts userID from the context.
-func GetUserID(ctx context.Context) (uint, bool) {
-	userID, ok := ctx.Value(UserIDKey).(uint)
-	return userID, ok
+func GetUserID(c *gin.Context) (uint, bool) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		return 0, false
+	}
+	return userID.(uint), true
 }

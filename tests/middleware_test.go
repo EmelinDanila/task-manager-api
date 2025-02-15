@@ -1,111 +1,100 @@
 package tests
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/EmelinDanila/task-manager-api/middleware"
 	"github.com/EmelinDanila/task-manager-api/services"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAuthMiddleware_ValidToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 	authService := services.NewAuthService()
 	userID := uint(123)
 
-	// Generate a valid token
+	// Генерируем валидный токен
 	token, _ := authService.GenerateToken(userID)
 
-	// Create middleware and wrap the test handler
-	handler := middleware.AuthMiddleware(authService)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		retrievedUserID, ok := middleware.GetUserID(r.Context())
-		assert.True(t, ok, "UserID should be present in context")
-		assert.Equal(t, userID, retrievedUserID, "UserID should match the one in the token")
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	// Create a request with a valid token
+	// Создаем тестовый HTTP запрос
 	req := httptest.NewRequest("GET", "/protected", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
-	rr := httptest.NewRecorder()
 
-	// Execute the request
-	handler.ServeHTTP(rr, req)
+	// Создаем ResponseRecorder для теста
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 
-	assert.Equal(t, http.StatusOK, rr.Code, "Valid token should allow access")
+	// Вызываем middleware
+	middleware.AuthMiddleware(authService)(c)
+
+	// Проверяем статус-код
+	assert.Equal(t, http.StatusOK, w.Code, "Valid token should allow access")
 }
 
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 	authService := services.NewAuthService()
 
-	// Create middleware and wrap the test handler
-	handler := middleware.AuthMiddleware(authService)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	// Create a request with an invalid token
 	req := httptest.NewRequest("GET", "/protected", nil)
 	req.Header.Set("Authorization", "Bearer invalid_token")
-	rr := httptest.NewRecorder()
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 
-	// Execute the request
-	handler.ServeHTTP(rr, req)
+	middleware.AuthMiddleware(authService)(c)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code, "Invalid token should return 401")
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "Invalid token should return 401")
 }
 
 func TestAuthMiddleware_MissingToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 	authService := services.NewAuthService()
 
-	// Create middleware and wrap the test handler
-	handler := middleware.AuthMiddleware(authService)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	// Create a request without Authorization header
 	req := httptest.NewRequest("GET", "/protected", nil)
-	rr := httptest.NewRecorder()
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 
-	// Execute the request
-	handler.ServeHTTP(rr, req)
+	middleware.AuthMiddleware(authService)(c)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code, "Missing token should return 401")
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "Missing token should return 401")
 }
 
 func TestAuthMiddleware_InvalidHeaderFormat(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 	authService := services.NewAuthService()
 
-	// Create middleware and wrap the test handler
-	handler := middleware.AuthMiddleware(authService)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	// Create a request with an invalid Authorization header format
 	req := httptest.NewRequest("GET", "/protected", nil)
 	req.Header.Set("Authorization", "InvalidFormat")
-	rr := httptest.NewRecorder()
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	c.Request = req
 
-	// Execute the request
-	handler.ServeHTTP(rr, req)
+	middleware.AuthMiddleware(authService)(c)
 
-	assert.Equal(t, http.StatusUnauthorized, rr.Code, "Invalid header format should return 401")
+	assert.Equal(t, http.StatusUnauthorized, w.Code, "Invalid header format should return 401")
 }
 
 func TestGetUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 	userID := uint(123)
-	ctx := context.WithValue(context.Background(), middleware.UserIDKey, userID)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Set("userID", userID)
 
-	retrievedUserID, ok := middleware.GetUserID(ctx)
+	retrievedUserID, ok := middleware.GetUserID(c)
 	assert.True(t, ok, "UserID should be retrievable from context")
 	assert.Equal(t, userID, retrievedUserID, "Retrieved UserID should match the original")
 }
 
 func TestGetUserID_Missing(t *testing.T) {
-	ctx := context.Background() // Context without UserID
+	gin.SetMode(gin.TestMode)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder()) // Context без UserID
 
-	retrievedUserID, ok := middleware.GetUserID(ctx)
+	retrievedUserID, ok := middleware.GetUserID(c)
 	assert.False(t, ok, "UserID should not be present in context")
 	assert.Equal(t, uint(0), retrievedUserID, "Default UserID should be 0 when not present")
 }
