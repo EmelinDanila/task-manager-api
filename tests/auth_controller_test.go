@@ -47,7 +47,7 @@ func TestAuthController_RegisterUser(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	// Checking the response status
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusCreated, w.Code)
 
 	// Checking the response content
 	assert.Contains(t, w.Body.String(), "User registered successfully")

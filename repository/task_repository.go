@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/EmelinDanila/task-manager-api/models"
 	"gorm.io/gorm"
 )
@@ -12,6 +14,8 @@ type TaskRepository interface {
 	GetAll() ([]models.Task, error)
 	Update(task *models.Task) error
 	Delete(id uint) error
+	GetByUserID(userID uint, tasks *[]models.Task) error
+	GetByIDAndUserID(taskID, userID uint, task *models.Task) error
 }
 
 type taskRepository struct {
@@ -54,4 +58,23 @@ func (r *taskRepository) Update(task *models.Task) error {
 // Delete removes a task from the database by its ID
 func (r *taskRepository) Delete(id uint) error {
 	return r.db.Delete(&models.Task{}, id).Error
+}
+
+// GetByUserID retrieves tasks for a specific user.
+func (r *taskRepository) GetByUserID(userID uint, tasks *[]models.Task) error {
+	if err := r.db.Where("user_id = ?", userID).Find(tasks).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetByIDAndUserID retrieves a task by its ID for a specific user.
+func (r *taskRepository) GetByIDAndUserID(taskID, userID uint, task *models.Task) error {
+	if err := r.db.Where("id = ? AND user_id = ?", taskID, userID).First(task).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return err
+		}
+		return fmt.Errorf("could not find task")
+	}
+	return nil
 }

@@ -13,14 +13,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// AuthController handles authentication
+// AuthController handles authentication-related operations.
 type AuthController struct {
-	authService services.AuthService
-	userRepo    repository.UserRepository
-	validate    *validator.Validate
+	authService services.AuthService      // Service for authentication operations
+	userRepo    repository.UserRepository // Repository for user data access
+	validate    *validator.Validate       // Validator for request data
 }
 
-// NewAuthController creates a new AuthController
+// NewAuthController creates a new instance of AuthController.
 func NewAuthController(authService services.AuthService, userRepo repository.UserRepository) *AuthController {
 	return &AuthController{
 		authService: authService,
@@ -29,39 +29,39 @@ func NewAuthController(authService services.AuthService, userRepo repository.Use
 	}
 }
 
-// RegisterUser handles user registration
+// RegisterUser handles user registration.
 func (ac *AuthController) RegisterUser(c *gin.Context) {
 	var requestData struct {
-		Email    string `json:"email" validate:"required,email"`
-		Password string `json:"password" validate:"required,min=8"`
+		Email    string `json:"email" validate:"required,email"`    // User's email
+		Password string `json:"password" validate:"required,min=8"` // User's password
 	}
 
-	// Validating the incoming request data
+	// Bind and validate the request data
 	if err := c.ShouldBindJSON(&requestData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
 
-	// Validating email format
+	// Validate email format
 	if !isValidEmail(requestData.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
-	// Validating password strength
+	// Validate password strength
 	if !isValidPassword(requestData.Password) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must be at least 8 characters long and contain a number, a special character, and an uppercase letter"})
 		return
 	}
 
-	// Checking if the user already exists
+	// Check if the user already exists
 	existingUser, _ := ac.userRepo.FindByEmail(requestData.Email)
 	if existingUser != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
 		return
 	}
 
-	// Creating the new user
+	// Create a new user
 	user := &models.User{
 		Email:    requestData.Email,
 		Password: requestData.Password,
@@ -71,54 +71,66 @@ func (ac *AuthController) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	// Returning success response
-	c.JSON(http.StatusOK, gin.H{"message": "User registered successfully"})
+	// Return success response
+	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
 
-// LoginUser handles user login
+// LoginUser handles user login.
 func (ac *AuthController) LoginUser(c *gin.Context) {
 	var loginData struct {
-		Email    string `json:"email" validate:"required,email"`
-		Password string `json:"password" validate:"required,min=8"`
+		Email    string `json:"email" validate:"required,email"`    // User's email
+		Password string `json:"password" validate:"required,min=8"` // User's password
 	}
 
-	// Validating the incoming login data
+	// Bind and validate the request data
 	if err := c.ShouldBindJSON(&loginData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
 
-	// Finding the user by email
+	// Check if email and password are provided
+	if loginData.Email == "" || loginData.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email and password are required"})
+		return
+	}
+
+	// Find the user by email
 	user, err := ac.userRepo.FindByEmail(loginData.Email)
-	if err != nil || user == nil {
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
-	// Comparing the password with the stored hash
+	// Check if the user exists
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		return
+	}
+
+	// Verify the password
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginData.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
-	// Generating JWT token
+	// Generate a JWT token
 	token, err := ac.authService.GenerateToken(user.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 		return
 	}
 
-	// Returning the generated token
+	// Return the token in the response
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
-// isValidEmail checks if the email format is valid
+// isValidEmail checks if the email is in a valid format.
 func isValidEmail(email string) bool {
 	re := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 	return re.MatchString(email)
 }
 
-// isValidPassword checks if the password meets the required criteria
+// isValidPassword checks if the password meets the strength requirements.
 func isValidPassword(password string) bool {
 	if len(password) < 8 {
 		return false

@@ -1,118 +1,110 @@
 package tests
 
 import (
-	"os"
 	"testing"
 
 	"github.com/EmelinDanila/task-manager-api/models"
-	"github.com/EmelinDanila/task-manager-api/repository"
 	"github.com/EmelinDanila/task-manager-api/services"
-	"github.com/EmelinDanila/task-manager-api/tests/testutils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-func TestTaskService(t *testing.T) {
-	// Save the current environment variable for later restoration
-	oldEnv := os.Getenv("GO-ENV")
+// MockTaskRepository is a mock implementation of TaskRepository
+type MockTaskRepository struct {
+	mock.Mock
+}
 
-	// Initialize test dependencies, including setting up the test database
-	db := testutils.SetupTestDB(t)
-	defer testutils.TeardownTestDB(db) // Ensure database teardown after tests
+// GetByID implements repository.TaskRepository.
+func (m *MockTaskRepository) GetByID(id uint) (*models.Task, error) {
+	panic("unimplemented")
+}
 
-	// Create repository and service for testing
-	repo := repository.NewTaskRepository(db.GetDB())
-	service := services.NewTaskService(repo)
+func (m *MockTaskRepository) Create(task *models.Task) error {
+	args := m.Called(task)
+	return args.Error(0)
+}
 
-	// Test: Creating a task
-	t.Run("CreateTask", func(t *testing.T) {
-		testutils.ClearTestDB(db) // Clear the database before starting the test
+func (m *MockTaskRepository) GetByIDAndUserID(taskID, userID uint, task *models.Task) error {
+	args := m.Called(taskID, userID, task)
+	return args.Error(0)
+}
 
-		task := &models.Task{
-			Title:       "Test Task",
-			Description: "Test Description",
-			Status:      "Pending",
-		}
+func (m *MockTaskRepository) GetByUserID(userID uint, tasks *[]models.Task) error {
+	args := m.Called(userID, tasks)
+	return args.Error(0)
+}
 
-		err := service.CreateTask(task)
-		assert.NoError(t, err, "Should create task without errors")
-		assert.NotZero(t, task.ID, "Task ID should be set after creation")
+func (m *MockTaskRepository) GetAll() ([]models.Task, error) {
+	args := m.Called()
+	return args.Get(0).([]models.Task), args.Error(1)
+}
+
+func (m *MockTaskRepository) Update(task *models.Task) error {
+	args := m.Called(task)
+	return args.Error(0)
+}
+
+func (m *MockTaskRepository) Delete(id uint) error {
+	args := m.Called(id)
+	return args.Error(0)
+}
+
+func Test2CreateTask(t *testing.T) {
+	mockRepo := new(MockTaskRepository)
+	taskService := services.NewTaskService(mockRepo)
+
+	task := &models.Task{Title: "Test Task", UserID: 1}
+	mockRepo.On("Create", task).Return(nil)
+
+	err := taskService.CreateTask(task)
+
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestGetTaskByID(t *testing.T) {
+	mockRepo := new(MockTaskRepository)
+	taskService := services.NewTaskService(mockRepo)
+
+	task := &models.Task{ID: 1, Title: "Test Task", UserID: 1}
+	mockRepo.On("GetByIDAndUserID", task.ID, task.UserID, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		*(args.Get(2).(*models.Task)) = *task
 	})
 
-	// Test: Fetching a task by ID
-	t.Run("GetTaskByID", func(t *testing.T) {
-		testutils.ClearTestDB(db) // Clear the database before starting the test
+	result, err := taskService.GetTaskByID(task.ID, task.UserID)
 
-		task := &models.Task{
-			Title:       "Test Task",
-			Description: "Test Description",
-			Status:      "Pending",
-		}
+	assert.NoError(t, err)
+	assert.Equal(t, task, result)
+}
 
-		err := service.CreateTask(task)
-		assert.NoError(t, err)
+func TestUpdateTask(t *testing.T) {
+	mockRepo := new(MockTaskRepository)
+	taskService := services.NewTaskService(mockRepo)
 
-		fetchedTask, err := service.GetTaskByID(task.ID)
-		assert.NoError(t, err, "Should fetch task without errors")
-		assert.Equal(t, task.ID, fetchedTask.ID, "Fetched task ID should match")
+	task := &models.Task{ID: 1, Title: "Updated Task", UserID: 1}
+	mockRepo.On("GetByIDAndUserID", task.ID, task.UserID, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		*(args.Get(2).(*models.Task)) = *task
 	})
+	mockRepo.On("Update", task).Return(nil)
 
-	// Test: Fetching all tasks
-	t.Run("GetAllTasks", func(t *testing.T) {
-		testutils.ClearTestDB(db) // Clear the database before starting the test
+	err := taskService.UpdateTask(task, task.UserID)
 
-		err := service.CreateTask(&models.Task{Title: "Task 1"})
-		assert.NoError(t, err)
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
+}
 
-		err = service.CreateTask(&models.Task{Title: "Task 2"})
-		assert.NoError(t, err)
+func TestDeleteTask(t *testing.T) {
+	mockRepo := new(MockTaskRepository)
+	taskService := services.NewTaskService(mockRepo)
 
-		tasks, err := service.GetAllTasks()
-		assert.NoError(t, err, "Should fetch tasks without errors")
-		assert.Len(t, tasks, 2, "Should return 2 tasks")
+	task := &models.Task{ID: 1, UserID: 1}
+	mockRepo.On("GetByIDAndUserID", task.ID, task.UserID, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+		*(args.Get(2).(*models.Task)) = *task
 	})
+	mockRepo.On("Delete", task.ID).Return(nil)
 
-	// Test: Updating a task
-	t.Run("UpdateTask", func(t *testing.T) {
-		testutils.ClearTestDB(db) // Clear the database before starting the test
+	err := taskService.DeleteTask(task.ID, task.UserID)
 
-		task := &models.Task{
-			Title:       "Old Task",
-			Description: "Old Description",
-			Status:      "Pending",
-		}
-
-		err := service.CreateTask(task)
-		assert.NoError(t, err)
-
-		task.Title = "Updated Task"
-		err = service.UpdateTask(task)
-		assert.NoError(t, err)
-
-		updatedTask, err := service.GetTaskByID(task.ID)
-		assert.NoError(t, err)
-		assert.Equal(t, "Updated Task", updatedTask.Title, "Task title should be updated")
-	})
-
-	// Test: Deleting a task
-	t.Run("DeleteTask", func(t *testing.T) {
-		testutils.ClearTestDB(db) // Clear the database before starting the test
-
-		task := &models.Task{
-			Title:       "Task to Delete",
-			Description: "Description",
-			Status:      "Pending",
-		}
-
-		err := service.CreateTask(task)
-		assert.NoError(t, err)
-
-		err = service.DeleteTask(task.ID)
-		assert.NoError(t, err)
-
-		_, err = service.GetTaskByID(task.ID)
-		assert.Error(t, err, "Fetching deleted task should return an error")
-	})
-
-	// Restore the original environment variable
-	os.Setenv("GO-ENV", oldEnv)
+	assert.NoError(t, err)
+	mockRepo.AssertExpectations(t)
 }

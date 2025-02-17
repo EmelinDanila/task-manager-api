@@ -5,19 +5,20 @@ import (
 
 	"github.com/EmelinDanila/task-manager-api/models"
 	"github.com/EmelinDanila/task-manager-api/repository"
+	"gorm.io/gorm"
 )
 
 // TaskService defines the interface for working with tasks.
 type TaskService interface {
-	CreateTask(task *models.Task) error        // Create a new task.
-	GetTaskByID(id uint) (*models.Task, error) // Get a task by its ID.
-	GetAllTasks() ([]models.Task, error)       // Retrieve all tasks.
-	UpdateTask(task *models.Task) error        // Update an existing task.
-	DeleteTask(id uint) error                  // Delete a task by its ID.
+	CreateTask(task *models.Task) error
+	GetTaskByID(id, userID uint) (*models.Task, error)
+	GetUserTasks(userID uint) ([]models.Task, error)
+	UpdateTask(task *models.Task, userID uint) error
+	DeleteTask(id, userID uint) error
 }
 
 type taskService struct {
-	repo repository.TaskRepository // Repository for interacting with the database.
+	repo repository.TaskRepository
 }
 
 // NewTaskService creates a new instance of TaskService.
@@ -25,40 +26,71 @@ func NewTaskService(repo repository.TaskRepository) TaskService {
 	return &taskService{repo: repo}
 }
 
-// CreateTask adds a new task to the database.
+// CreateTask ensures task belongs to a user before saving.
 func (s *taskService) CreateTask(task *models.Task) error {
-	// Ensure task title is provided.
 	if task.Title == "" {
 		return errors.New("task title cannot be empty")
 	}
-	// Use repository to create the task.
 	return s.repo.Create(task)
 }
 
-// GetTaskByID fetches a task from the database by its ID.
-func (s *taskService) GetTaskByID(id uint) (*models.Task, error) {
-	// Retrieve the task using the repository.
-	return s.repo.GetByID(id)
-}
+// GetTaskByID ensures user can only retrieve their own tasks.
+func (s *taskService) GetTaskByID(taskID, userID uint) (*models.Task, error) {
+	task := &models.Task{}
+	err := s.repo.GetByIDAndUserID(taskID, userID, task)
 
-// GetAllTasks retrieves all tasks from the database.
-func (s *taskService) GetAllTasks() ([]models.Task, error) {
-	// Use repository to fetch all tasks.
-	return s.repo.GetAll()
-}
-
-// UpdateTask updates the details of an existing task.
-func (s *taskService) UpdateTask(task *models.Task) error {
-	// Ensure task has a valid ID.
-	if task.ID == 0 {
-		return errors.New("task ID cannot be zero")
+	// Если задача не найдена, возвращаем "task not found" (404)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, errors.New("task not found")
 	}
-	// Update the task using the repository.
-	return s.repo.Update(task)
+
+	// Если другая ошибка, просто возвращаем ее
+	if err != nil {
+		return nil, err
+	}
+
+	return task, nil
 }
 
-// DeleteTask deletes a task from the database by its ID.
-func (s *taskService) DeleteTask(id uint) error {
-	// Delete the task using the repository.
-	return s.repo.Delete(id)
+// GetUserTasks ensures user only sees their own tasks.
+func (s *taskService) GetUserTasks(userID uint) ([]models.Task, error) {
+	var tasks []models.Task
+	if err := s.repo.GetByUserID(userID, &tasks); err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+// UpdateTask checks if the user owns the task before updating.
+func (s *taskService) UpdateTask(task *models.Task, userID uint) error {
+	existingTask, err := s.GetTaskByID(task.ID, userID)
+	if err != nil {
+		return err // Уже содержит "task not found"
+	}
+
+	// Проверяем, владеет ли пользователь задачей
+	if existingTask.UserID != userID {
+		return errors.New("forbidden") // 403 Forbidden
+	}
+
+	// Обновляем только разрешенные поля
+	existingTask.Title = task.Title
+	existingTask.Description = task.Description
+	existingTask.Status = task.Status
+
+	return s.repo.Update(existingTask)
+}
+
+// DeleteTask ensures only the owner can delete a task.
+func (s *taskService) DeleteTask(id, userID uint) error {
+	task, err := s.GetTaskByID(id, userID)
+	if err != nil {
+		return err // Уже содержит "task not found"
+	}
+
+	if task.UserID != userID {
+		return errors.New("forbidden") // 403
+	}
+
+	return s.repo.Delete(task.ID)
 }

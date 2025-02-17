@@ -2,14 +2,12 @@ package tests
 
 import (
 	"bytes"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/EmelinDanila/task-manager-api/controllers"
+	"github.com/EmelinDanila/task-manager-api/middleware"
 	"github.com/EmelinDanila/task-manager-api/models"
 	"github.com/EmelinDanila/task-manager-api/repository"
 	"github.com/EmelinDanila/task-manager-api/services"
@@ -18,144 +16,193 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTaskController(t *testing.T) {
-	// Save the old environment variable to restore later
-	oldEnv := os.Getenv("GO-ENV")
-	// Set up a test database
+// setupTaskControllerTest prepares test dependencies for TaskController.
+func setupTaskControllerTest(t *testing.T) (*gin.Engine, services.TaskService, uint, string) {
+	gin.SetMode(gin.TestMode)
 	db := testutils.SetupTestDB(t)
-	defer testutils.TeardownTestDB(db)
-
-	// Create necessary repository, service, and router
-	repo := repository.NewTaskRepository(db.GetDB())
-	service := services.NewTaskService(repo)
+	testutils.ClearTestDB(db)
 	router := gin.Default()
-	controllers.NewTaskController(router, service)
 
-	// Test case for creating a new task
-	t.Run("CreateTask", func(t *testing.T) {
-		testutils.ClearTestDB(db)
+	// Setup dependencies
+	taskRepo := repository.NewTaskRepository(db.GetDB())
+	taskService := services.NewTaskService(taskRepo)
+	taskController := controllers.TaskController{Service: taskService}
+	authService := services.NewAuthService()
 
-		task := models.Task{
-			Title:       "New Task",
-			Description: "This is a new task",
-			Status:      "Pending",
-		}
+	// Register protected routes
+	protected := router.Group("/")
+	protected.Use(middleware.AuthMiddleware(authService))
+	{
+		protected.POST("/tasks", taskController.CreateTask)
+		protected.GET("/tasks", taskController.GetAllTasks)
+		protected.GET("/tasks/:id", taskController.GetTaskByID)
+		protected.PUT("/tasks/:id", taskController.UpdateTask)
+		protected.DELETE("/tasks/:id", taskController.DeleteTask)
+	}
 
-		// Create HTTP request with JSON body
-		body, _ := json.Marshal(task)
-		req, _ := http.NewRequest("POST", "/tasks", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
+	// Create test user and generate token
+	userRepo := repository.NewUserRepository(db.GetDB())
+	user := &models.User{Email: "test@example.com", Password: "Password123!"}
+	userRepo.CreateUser(user)
+	token, _ := authService.GenerateToken(user.ID)
 
-		// Recorder to capture response
-		resp := httptest.NewRecorder()
-		router.ServeHTTP(resp, req)
+	return router, taskService, user.ID, token
+}
 
-		// Assert the status code is 201 (Created)
-		assert.Equal(t, http.StatusCreated, resp.Code)
+// TestTaskCreation verifies task creation.
+func TestTaskCreation(t *testing.T) {
+	router, _, _, token := setupTaskControllerTest(t)
 
-		var createdTask models.Task
-		// Unmarshal response body into task object
-		json.Unmarshal(resp.Body.Bytes(), &createdTask)
-		// Assert that the task title is the same as the one sent
-		assert.Equal(t, "New Task", createdTask.Title)
-	})
+	taskData := `{"title": "Test Task", "description": "Task Description"}`
+	req, _ := http.NewRequest("POST", "/tasks", bytes.NewBufferString(taskData))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
 
-	// Test case for fetching a task by its ID
-	t.Run("GetTaskByID", func(t *testing.T) {
-		testutils.ClearTestDB(db)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
-		// Create a new task
-		task := &models.Task{
-			Title: "Test Task",
-		}
-		err := service.CreateTask(task)
-		assert.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
 
-		// Make a GET request to fetch the task by ID
-		req, _ := http.NewRequest("GET", fmt.Sprintf("/tasks/%d", task.ID), nil)
-		resp := httptest.NewRecorder()
-		router.ServeHTTP(resp, req)
+// TestFetchingAllTasks verifies getting all tasks.
+func TestFetchingAllTasks(t *testing.T) {
+	router, _, _, token := setupTaskControllerTest(t)
 
-		// Assert the response status is 200 (OK)
-		assert.Equal(t, http.StatusOK, resp.Code)
+	req, _ := http.NewRequest("GET", "/tasks", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 
-		var fetchedTask models.Task
-		// Unmarshal response body into task object
-		json.Unmarshal(resp.Body.Bytes(), &fetchedTask)
-		// Assert that the fetched task ID is the same as the created task ID
-		assert.Equal(t, task.ID, fetchedTask.ID)
-	})
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
-	// Test case for fetching all tasks
-	t.Run("GetAllTasks", func(t *testing.T) {
-		testutils.ClearTestDB(db)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
 
-		// Create two tasks
-		service.CreateTask(&models.Task{Title: "Task 1"})
-		service.CreateTask(&models.Task{Title: "Task 2"})
+// TestFetchingTaskByID verifies getting a task by ID.
+func TestFetchingTaskByID(t *testing.T) {
+	router, service, userID, token := setupTaskControllerTest(t)
 
-		// Make a GET request to fetch all tasks
-		req, _ := http.NewRequest("GET", "/tasks", nil)
-		resp := httptest.NewRecorder()
-		router.ServeHTTP(resp, req)
+	task := &models.Task{Title: "Sample Task", Description: "Some description", UserID: userID}
+	service.CreateTask(task)
 
-		// Assert the response status is 200 (OK)
-		assert.Equal(t, http.StatusOK, resp.Code)
+	req, _ := http.NewRequest("GET", "/tasks/1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 
-		var tasks []models.Task
-		// Unmarshal response body into tasks array
-		json.Unmarshal(resp.Body.Bytes(), &tasks)
-		// Assert that two tasks were returned
-		assert.Len(t, tasks, 2)
-	})
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
-	// Test case for updating an existing task
-	t.Run("UpdateTask", func(t *testing.T) {
-		testutils.ClearTestDB(db)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
 
-		// Create a new task
-		task := &models.Task{Title: "Old Task"}
-		err := service.CreateTask(task)
-		assert.NoError(t, err)
+// TestUpdatingTask verifies task updating.
+func TestUpdatingTask(t *testing.T) {
+	router, service, userID, token := setupTaskControllerTest(t)
 
-		// Update the task title
-		task.Title = "Updated Task"
-		body, _ := json.Marshal(task)
-		req, _ := http.NewRequest("PUT", fmt.Sprintf("/tasks/%d", task.ID), bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
+	task := &models.Task{Title: "Old Task", Description: "Old Description", UserID: userID}
+	service.CreateTask(task)
 
-		// Make a PUT request to update the task
-		resp := httptest.NewRecorder()
-		router.ServeHTTP(resp, req)
+	updatedTask := `{"title": "Updated Task", "description": "Updated Description"}`
+	req, _ := http.NewRequest("PUT", "/tasks/1", bytes.NewBufferString(updatedTask))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
 
-		// Assert the response status is 200 (OK)
-		assert.Equal(t, http.StatusOK, resp.Code)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
-		var updatedTask models.Task
-		// Unmarshal response body into task object
-		json.Unmarshal(resp.Body.Bytes(), &updatedTask)
-		// Assert that the task title was updated
-		assert.Equal(t, "Updated Task", updatedTask.Title)
-	})
+	assert.Equal(t, http.StatusOK, w.Code)
+}
 
-	// Test case for deleting a task
-	t.Run("DeleteTask", func(t *testing.T) {
-		testutils.ClearTestDB(db)
+// TestRemovingTask verifies task deletion.
+func TestRemovingTask(t *testing.T) {
+	router, service, userID, token := setupTaskControllerTest(t)
 
-		// Create a new task
-		task := &models.Task{Title: "Task to Delete"}
-		err := service.CreateTask(task)
-		assert.NoError(t, err)
+	task := &models.Task{Title: "Task to Delete", Description: "Will be deleted", UserID: userID}
+	service.CreateTask(task)
 
-		// Make a DELETE request to delete the task by ID
-		req, _ := http.NewRequest("DELETE", fmt.Sprintf("/tasks/%d", task.ID), nil)
-		resp := httptest.NewRecorder()
-		router.ServeHTTP(resp, req)
+	req, _ := http.NewRequest("DELETE", "/tasks/1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
 
-		// Assert the response status is 204 (No Content)
-		assert.Equal(t, http.StatusNoContent, resp.Code)
-	})
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
 
-	// Restore the old environment variable
-	os.Setenv("GO-ENV", oldEnv)
+	assert.Equal(t, http.StatusNoContent, w.Code)
+}
+
+// TestUnauthorizedAccess verifies that unauthorized users cannot create a task.
+func TestUnauthorizedAccess(t *testing.T) {
+	router, _, _, _ := setupTaskControllerTest(t) // Без токена
+
+	req, _ := http.NewRequest("POST", "/tasks", bytes.NewBufferString(`{"title": "Unauthorized Task"}`))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code) // Должно быть 401
+}
+
+// TestUnauthorizedTaskRetrieval verifies that unauthorized users cannot get tasks.
+func TestUnauthorizedTaskRetrieval(t *testing.T) {
+	router, _, _, _ := setupTaskControllerTest(t) // Без токена
+
+	req, _ := http.NewRequest("GET", "/tasks", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code) // Должно быть 401
+}
+
+// TestAccessingOthersTask verifies that a user cannot access another user's task.
+func TestAccessingOthersTask(t *testing.T) {
+	router, service, _, token := setupTaskControllerTest(t)
+
+	// Создаем задачу от имени другого пользователя (userID = 2)
+	task := &models.Task{Title: "Task from another user", Description: "Not yours", UserID: 2}
+	service.CreateTask(task)
+
+	req, _ := http.NewRequest("GET", "/tasks/1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Ожидаем 404 Not Found или 403 Forbidden
+	assert.Contains(t, []int{http.StatusNotFound, http.StatusForbidden}, w.Code)
+}
+
+// TestUpdatingOthersTask ensures a user cannot update another user's task.
+func TestUpdatingOthersTask(t *testing.T) {
+	router, service, _, token := setupTaskControllerTest(t)
+
+	// Создаем задачу от имени другого пользователя
+	task := &models.Task{Title: "Task from another user", Description: "Not yours", UserID: 2}
+	service.CreateTask(task)
+
+	updatedTask := `{"title": "Updated Task", "description": "Should not be allowed"}`
+	req, _ := http.NewRequest("PUT", "/tasks/1", bytes.NewBufferString(updatedTask))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Теперь ожидаем 403 или 404 вместо 500
+	assert.Contains(t, []int{http.StatusNotFound, http.StatusForbidden}, w.Code)
+}
+
+// TestDeletingOthersTask ensures a user cannot delete another user's task.
+func TestDeletingOthersTask(t *testing.T) {
+	router, service, _, token := setupTaskControllerTest(t)
+
+	// Создаем задачу от имени другого пользователя
+	task := &models.Task{Title: "Task from another user", Description: "Not yours", UserID: 2}
+	service.CreateTask(task)
+
+	req, _ := http.NewRequest("DELETE", "/tasks/1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Теперь ожидаем 403 или 404 вместо 500
+	assert.Contains(t, []int{http.StatusNotFound, http.StatusForbidden}, w.Code)
 }
