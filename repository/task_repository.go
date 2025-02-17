@@ -1,8 +1,6 @@
 package repository
 
 import (
-	"fmt"
-
 	"github.com/EmelinDanila/task-manager-api/models"
 	"gorm.io/gorm"
 )
@@ -74,7 +72,7 @@ func (r *taskRepository) GetByIDAndUserID(taskID, userID uint, task *models.Task
 		if err == gorm.ErrRecordNotFound {
 			return err
 		}
-		return fmt.Errorf("could not find task")
+		return gorm.ErrRecordNotFound
 	}
 	return nil
 }

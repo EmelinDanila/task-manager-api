@@ -129,7 +129,7 @@ func TestRemovingTask(t *testing.T) {
 
 // TestUnauthorizedAccess verifies that unauthorized users cannot create a task.
 func TestUnauthorizedAccess(t *testing.T) {
-	router, _, _, _ := setupTaskControllerTest(t) // Без токена
+	router, _, _, _ := setupTaskControllerTest(t) // No token provided
 
 	req, _ := http.NewRequest("POST", "/tasks", bytes.NewBufferString(`{"title": "Unauthorized Task"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -137,25 +137,25 @@ func TestUnauthorizedAccess(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code) // Должно быть 401
+	assert.Equal(t, http.StatusUnauthorized, w.Code) // Should return 401
 }
 
 // TestUnauthorizedTaskRetrieval verifies that unauthorized users cannot get tasks.
 func TestUnauthorizedTaskRetrieval(t *testing.T) {
-	router, _, _, _ := setupTaskControllerTest(t) // Без токена
+	router, _, _, _ := setupTaskControllerTest(t) // No token provided
 
 	req, _ := http.NewRequest("GET", "/tasks", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusUnauthorized, w.Code) // Должно быть 401
+	assert.Equal(t, http.StatusUnauthorized, w.Code) // Should return 401
 }
 
 // TestAccessingOthersTask verifies that a user cannot access another user's task.
 func TestAccessingOthersTask(t *testing.T) {
 	router, service, _, token := setupTaskControllerTest(t)
 
-	// Создаем задачу от имени другого пользователя (userID = 2)
+	// Create a task for another user (userID = 2)
 	task := &models.Task{Title: "Task from another user", Description: "Not yours", UserID: 2}
 	service.CreateTask(task)
 
@@ -165,7 +165,7 @@ func TestAccessingOthersTask(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Ожидаем 404 Not Found или 403 Forbidden
+	// Expect 404 Not Found or 403 Forbidden
 	assert.Contains(t, []int{http.StatusNotFound, http.StatusForbidden}, w.Code)
 }
 
@@ -173,7 +173,7 @@ func TestAccessingOthersTask(t *testing.T) {
 func TestUpdatingOthersTask(t *testing.T) {
 	router, service, _, token := setupTaskControllerTest(t)
 
-	// Создаем задачу от имени другого пользователя
+	// Create a task for another user
 	task := &models.Task{Title: "Task from another user", Description: "Not yours", UserID: 2}
 	service.CreateTask(task)
 
@@ -185,7 +185,7 @@ func TestUpdatingOthersTask(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Теперь ожидаем 403 или 404 вместо 500
+	// Expect 403 Forbidden or 404 Not Found instead of 500
 	assert.Contains(t, []int{http.StatusNotFound, http.StatusForbidden}, w.Code)
 }
 
@@ -193,7 +193,7 @@ func TestUpdatingOthersTask(t *testing.T) {
 func TestDeletingOthersTask(t *testing.T) {
 	router, service, _, token := setupTaskControllerTest(t)
 
-	// Создаем задачу от имени другого пользователя
+	// Create a task for another user
 	task := &models.Task{Title: "Task from another user", Description: "Not yours", UserID: 2}
 	service.CreateTask(task)
 
@@ -203,6 +203,6 @@ func TestDeletingOthersTask(t *testing.T) {
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	// Теперь ожидаем 403 или 404 вместо 500
+	// Expect 403 Forbidden or 404 Not Found instead of 500
 	assert.Contains(t, []int{http.StatusNotFound, http.StatusForbidden}, w.Code)
 }

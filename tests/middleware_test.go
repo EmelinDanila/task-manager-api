@@ -11,30 +11,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Tested Middleware Authmiddleware on a valid token
 func TestAuthMiddleware_ValidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authService := services.NewAuthService()
 	userID := uint(123)
 
-	// Генерируем валидный токен
+	//generate valid token
 	token, _ := authService.GenerateToken(userID)
 
-	// Создаем тестовый HTTP запрос
+	//Create a test http request
 	req := httptest.NewRequest("GET", "/protected", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 
-	// Создаем ResponseRecorder для теста
+	//Create Responserecorder for the test
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
 
-	// Вызываем middleware
+	//Call Middleware
 	middleware.AuthMiddleware(authService)(c)
 
-	// Проверяем статус-код
+	//Check the status code
 	assert.Equal(t, http.StatusOK, w.Code, "Valid token should allow access")
 }
 
+// Tested Middleware AuthMiddleware on an invalid token
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authService := services.NewAuthService()
@@ -50,6 +52,7 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code, "Invalid token should return 401")
 }
 
+// Tested Middleware AuthMiddleware on a missing token
 func TestAuthMiddleware_MissingToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authService := services.NewAuthService()
@@ -64,6 +67,7 @@ func TestAuthMiddleware_MissingToken(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code, "Missing token should return 401")
 }
 
+// Tested Middleware AuthMiddleware on an invalid header format (non-Bearer)
 func TestAuthMiddleware_InvalidHeaderFormat(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authService := services.NewAuthService()
@@ -79,6 +83,7 @@ func TestAuthMiddleware_InvalidHeaderFormat(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, w.Code, "Invalid header format should return 401")
 }
 
+// TestGetUserID verifies that the middleware can extract the UserID from the context.
 func TestGetUserID(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	userID := uint(123)
@@ -90,6 +95,7 @@ func TestGetUserID(t *testing.T) {
 	assert.Equal(t, userID, retrievedUserID, "Retrieved UserID should match the original")
 }
 
+// TestGetUserID_Missing verifies that the middleware returns false when the UserID is not present in the context.
 func TestGetUserID_Missing(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	c, _ := gin.CreateTestContext(httptest.NewRecorder()) // Context без UserID

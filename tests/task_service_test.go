@@ -49,7 +49,8 @@ func (m *MockTaskRepository) Delete(id uint) error {
 	return args.Error(0)
 }
 
-func Test2CreateTask(t *testing.T) {
+// TestToCreateTask tests the CreateTask method of TaskService
+func TestToCreateTask(t *testing.T) {
 	mockRepo := new(MockTaskRepository)
 	taskService := services.NewTaskService(mockRepo)
 
@@ -62,11 +63,13 @@ func Test2CreateTask(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
+// TestGetTaskByID tests the GetTaskByID method of TaskService
 func TestGetTaskByID(t *testing.T) {
 	mockRepo := new(MockTaskRepository)
 	taskService := services.NewTaskService(mockRepo)
 
 	task := &models.Task{ID: 1, Title: "Test Task", UserID: 1}
+	// Mock the GetByIDAndUserID method to return the task
 	mockRepo.On("GetByIDAndUserID", task.ID, task.UserID, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		*(args.Get(2).(*models.Task)) = *task
 	})
@@ -77,6 +80,7 @@ func TestGetTaskByID(t *testing.T) {
 	assert.Equal(t, task, result)
 }
 
+// TestUpdateTask tests the UpdateTask method of TaskService
 func TestUpdateTask(t *testing.T) {
 	mockRepo := new(MockTaskRepository)
 	taskService := services.NewTaskService(mockRepo)
@@ -93,6 +97,7 @@ func TestUpdateTask(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
+// TestDeleteTask tests the DeleteTask method of TaskService
 func TestDeleteTask(t *testing.T) {
 	mockRepo := new(MockTaskRepository)
 	taskService := services.NewTaskService(mockRepo)

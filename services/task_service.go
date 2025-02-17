@@ -39,12 +39,12 @@ func (s *taskService) GetTaskByID(taskID, userID uint) (*models.Task, error) {
 	task := &models.Task{}
 	err := s.repo.GetByIDAndUserID(taskID, userID, task)
 
-	// Если задача не найдена, возвращаем "task not found" (404)
+	// If the task is not found, we return "task not found" (404)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, errors.New("task not found")
 	}
 
-	// Если другая ошибка, просто возвращаем ее
+	// If another error occurs, we return it
 	if err != nil {
 		return nil, err
 	}
