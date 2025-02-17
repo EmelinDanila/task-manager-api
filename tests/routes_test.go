@@ -14,15 +14,18 @@ import (
 )
 
 func TestRoutes_Setup(t *testing.T) {
+	// Set Gin to Test Mode
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
 
+	// Setup test database
 	db := testutils.SetupTestDB(t)
 	defer testutils.TeardownTestDB(db)
 
+	// Setup routes
 	routes.SetupRoutes(router, db.GetDB())
 
-	// Тестовые данные
+	// Test data
 	validUser := map[string]string{
 		"email":    "test@example.com",
 		"password": "ValidPass123!",
@@ -32,7 +35,7 @@ func TestRoutes_Setup(t *testing.T) {
 		"password": "",
 	}
 
-	// Функция для отправки JSON-запроса
+	// Function to send JSON request
 	sendJSONRequest := func(method, path string, body interface{}) *httptest.ResponseRecorder {
 		jsonBody, _ := json.Marshal(body)
 		req := httptest.NewRequest(method, path, bytes.NewBuffer(jsonBody))
@@ -42,7 +45,7 @@ func TestRoutes_Setup(t *testing.T) {
 		return w
 	}
 
-	// ✅ Проверка регистрации
+	// Check registration
 	resp := sendJSONRequest("POST", "/register", invalidUser)
 	assert.Equal(t, http.StatusBadRequest, resp.Code, "Invalid registration should return 400")
 
@@ -52,18 +55,18 @@ func TestRoutes_Setup(t *testing.T) {
 	resp = sendJSONRequest("POST", "/register", validUser)
 	assert.Equal(t, http.StatusConflict, resp.Code, "Duplicate registration should return 409")
 
-	// ✅ Проверка логина
+	// Check login
 	resp = sendJSONRequest("POST", "/login", invalidUser)
-	assert.Equal(t, http.StatusBadRequest, resp.Code, "Invalid login should return 400") // Ожидаем `400`
+	assert.Equal(t, http.StatusBadRequest, resp.Code, "Invalid login should return 400")
 
 	resp = sendJSONRequest("POST", "/login", map[string]string{"email": "unknown@example.com", "password": "WrongPass123!"})
-	assert.Equal(t, http.StatusUnauthorized, resp.Code, "Login with non-existent user should return 401") // Ожидаем `401`
+	assert.Equal(t, http.StatusUnauthorized, resp.Code, "Login with non-existent user should return 401")
 
 	resp = sendJSONRequest("POST", "/login", validUser)
 	assert.Equal(t, http.StatusOK, resp.Code, "Valid login should return 200")
 	assert.Contains(t, resp.Body.String(), "token", "Response should contain a token")
 
-	// ✅ Проверка защищенных маршрутов
+	// Check protected routes
 	protectedRoutes := []struct {
 		method string
 		path   string
