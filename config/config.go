@@ -37,7 +37,7 @@ func (r *RealDB) GetDB() *gorm.DB {
 
 // LoadEnvVars loads environment variables from the .env file
 func LoadEnvVars() {
-	err := godotenv.Load("d:\\task-manager-api\\.env")
+	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
