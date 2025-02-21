@@ -29,20 +29,26 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.20
+          go-version: '1.20'
+          cache: true
 
       - name: Verify Go installation
         run: |
+          echo "Go version:"
           go version
+          echo "Go environment:"
           go env
-          which go  # Проверяем, что Go установлен
+          which go
+          export GOROOT=$(go env GOROOT)
+          export PATH=$GOROOT/bin:$PATH
 
       - name: Install dependencies
-        working-directory: .
-        run: go mod tidy
+        run: |
+          export GOROOT=$(go env GOROOT)
+          export PATH=$GOROOT/bin:$PATH
+          go mod tidy
 
       - name: Run tests
-        working-directory: .
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -51,7 +57,10 @@ jobs:
           DB_NAME: test_taskmanager
           JWT_SECRET: J9xlXeiUW2vRg58I4OZa11FrxczblfgE8k5jiCo-hxw
           GO_ENV: test
-        run: go test ./tests/... -v
+        run: |
+          export GOROOT=$(go env GOROOT)
+          export PATH=$GOROOT/bin:$PATH
+          go test ./... -v
 
   build:
     needs: test  # Зависит от успешного завершения тестов
