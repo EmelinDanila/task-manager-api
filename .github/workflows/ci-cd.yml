@@ -49,6 +49,7 @@ jobs:
           go mod tidy
 
       - name: Run tests
+        working-directory: ./tests
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -57,10 +58,7 @@ jobs:
           DB_NAME: test_taskmanager
           JWT_SECRET: J9xlXeiUW2vRg58I4OZa11FrxczblfgE8k5jiCo-hxw
           GO_ENV: test
-        run: |
-          export GOROOT=$(go env GOROOT)
-          export PATH=$GOROOT/bin:$PATH
-          go test ./... -v
+        run: go test ./... -v
 
   build:
     needs: test  # Зависит от успешного завершения тестов
