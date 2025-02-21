@@ -1,0 +1,342 @@
+basePath: /
+definitions:
+  models.ErrorResponse:
+    properties:
+      error:
+        description: Сообщение об ошибке
+        type: string
+    type: object
+  models.TaskListResponse:
+    properties:
+      tasks:
+        items:
+          $ref: '#/definitions/models.TaskResponse'
+        type: array
+    type: object
+  models.TaskResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.TokenResponse:
+    properties:
+      token:
+        description: JWT-токен
+        type: string
+    type: object
+  models.UserRegisterRequest:
+    properties:
+      email:
+        description: Email пользователя
+        example: user@example.com
+        type: string
+      password:
+        description: Пароль пользователя
+        example: StrongP@ssword1
+        type: string
+    type: object
+host: 'localhost: 8080'
+info:
+  contact:
+    email: d.emelin.qa@gmail.com
+    name: Danila Emelin
+    url: https://github.com/EmelinDanila
+  description: Task Manager API is a RESTful API for managing tasks. The application
+    will allow users to create, update, delete, and view tasks. It will use Go for
+    the backend, PostgreSQL for the database, and JWT for authentication.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Task Manager API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Login a user with email and password
+      parameters:
+      - description: User login data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful, token generated
+          schema:
+            $ref: '#/definitions/models.TokenResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Invalid email or password
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Could not generate token
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Login a user
+      tags:
+      - auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with email and password
+      parameters:
+      - description: User registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserRegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User successfully registered
+          schema:
+            $ref: '#/definitions/models.TokenResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Could not create user
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /tasks:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of tasks for the authenticated user
+          schema:
+            $ref: '#/definitions/models.TaskListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get all tasks for the authenticated user
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Create a new task for the authenticated user
+      parameters:
+      - description: Task data
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            description:
+              type: string
+            status:
+              type: string
+            title:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Task created successfully
+          schema:
+            $ref: '#/definitions/models.TaskResponse'
+        "400":
+          description: Invalid request data
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new task
+      tags:
+      - tasks
+  /tasks/{id}:
+    delete:
+      description: Delete a task only if the authenticated user is the owner of the
+        task
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Task deleted successfully
+        "400":
+          description: Invalid task ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: 'Forbidden: You cannot delete another user''s task'
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a task
+      tags:
+      - tasks
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific task by ID for the authenticated user
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task found
+          schema:
+            $ref: '#/definitions/models.TaskResponse'
+        "400":
+          description: Invalid task ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: 'Forbidden: You cannot access this task'
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get a task by ID
+      tags:
+      - tasks
+    put:
+      consumes:
+      - application/json
+      description: Update a task only if the authenticated user is the owner of the
+        task
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated task data
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            description:
+              type: string
+            status:
+              type: string
+            title:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Task updated successfully
+          schema:
+            $ref: '#/definitions/models.TaskResponse'
+        "400":
+          description: Invalid task ID or request data
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: 'Forbidden: You cannot update another user''s task'
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Task not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Update an existing task
+      tags:
+      - tasks
+securityDefinitions:
+  ApiKeyAuth:
+    description: 'Use ''Bearer'' followed by your JWT token. Example: "Bearer your_token_here"'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

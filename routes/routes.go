@@ -2,15 +2,28 @@ package routes
 
 import (
 	"github.com/EmelinDanila/task-manager-api/controllers"
+	"github.com/EmelinDanila/task-manager-api/docs"
 	"github.com/EmelinDanila/task-manager-api/middleware"
 	"github.com/EmelinDanila/task-manager-api/repository"
 	"github.com/EmelinDanila/task-manager-api/services"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func SetupRoutes(router *gin.Engine, db *gorm.DB) {
+	// Swagger documentation
+	docs.SwaggerInfo.Title = "Task Manager API"
+	docs.SwaggerInfo.Description = "This is a task manager API."
+	docs.SwaggerInfo.Version = "1.0"
+	docs.SwaggerInfo.Host = "localhost:8080"
+	docs.SwaggerInfo.BasePath = "/"
+	docs.SwaggerInfo.Schemes = []string{"http"}
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Auth service and controller setup
 	authService := services.NewAuthService()
 	userRepo := repository.NewUserRepository(db)

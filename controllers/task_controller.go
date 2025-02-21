@@ -26,7 +26,18 @@ func NewTaskController(router *gin.Engine, service services.TaskService) {
 	router.DELETE("/tasks/:id", controller.DeleteTask)
 }
 
-// CreateTask ensures the task is assigned to the correct user.
+// @Summary Create a new task
+// @Description Create a new task for the authenticated user
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param request body object{title=string,description=string,status=string} true "Task data"
+// @Success 201 {object} models.TaskResponse "Task created successfully"
+// @Failure 400 {object} models.ErrorResponse "Invalid request data"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Router /tasks [post]
 func (c *TaskController) CreateTask(ctx *gin.Context) {
 	userID, exists := middleware.GetUserID(ctx)
 	if !exists {
@@ -50,7 +61,20 @@ func (c *TaskController) CreateTask(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, task)
 }
 
-// GetTaskByID ensures user can only access their own tasks.
+// @Summary Get a task by ID
+// @Description Retrieves a specific task by ID for the authenticated user
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "Task ID"
+// @Success 200 {object} models.TaskResponse "Task found"
+// @Failure 400 {object} models.ErrorResponse "Invalid task ID"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized"
+// @Failure 403 {object} models.ErrorResponse "Forbidden: You cannot access this task"
+// @Failure 404 {object} models.ErrorResponse "Task not found"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Router /tasks/{id} [get]
 func (c *TaskController) GetTaskByID(ctx *gin.Context) {
 	userID, exists := middleware.GetUserID(ctx)
 	if !exists {
@@ -79,7 +103,15 @@ func (c *TaskController) GetTaskByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, task)
 }
 
-// GetAllTasks returns only the tasks for the logged-in user.
+// @Summary Get all tasks for the authenticated user
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} models.TaskListResponse "List of tasks for the authenticated user"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Router /tasks [get]
 func (c *TaskController) GetAllTasks(ctx *gin.Context) {
 	userID, exists := middleware.GetUserID(ctx)
 	if !exists {
@@ -96,7 +128,21 @@ func (c *TaskController) GetAllTasks(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, tasks)
 }
 
-// UpdateTask ensures only task owners can update.
+// @Summary Update an existing task
+// @Description Update a task only if the authenticated user is the owner of the task
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Param id path int true "Task ID"
+// @Param request body object{title=string,description=string,status=string} true "Updated task data"
+// @Success 200 {object} models.TaskResponse "Task updated successfully"
+// @Failure 400 {object} models.ErrorResponse "Invalid task ID or request data"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized"
+// @Failure 403 {object} models.ErrorResponse "Forbidden: You cannot update another user's task"
+// @Failure 404 {object} models.ErrorResponse "Task not found"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Router /tasks/{id} [put]
 func (c *TaskController) UpdateTask(ctx *gin.Context) {
 	userID, exists := middleware.GetUserID(ctx)
 	if !exists {
@@ -132,7 +178,18 @@ func (c *TaskController) UpdateTask(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, task)
 }
 
-// DeleteTask ensures only task owners can delete.
+// @Summary Delete a task
+// @Description Delete a task only if the authenticated user is the owner of the task
+// @Tags tasks
+// @Security ApiKeyAuth
+// @Param id path int true "Task ID"
+// @Success 204 "Task deleted successfully"
+// @Failure 400 {object} models.ErrorResponse "Invalid task ID"
+// @Failure 401 {object} models.ErrorResponse "Unauthorized"
+// @Failure 403 {object} models.ErrorResponse "Forbidden: You cannot delete another user's task"
+// @Failure 404 {object} models.ErrorResponse "Task not found"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Router /tasks/{id} [delete]
 func (c *TaskController) DeleteTask(ctx *gin.Context) {
 	userID, exists := middleware.GetUserID(ctx)
 	if !exists {

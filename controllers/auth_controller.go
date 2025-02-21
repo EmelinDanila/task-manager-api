@@ -20,7 +20,6 @@ type AuthController struct {
 	validate    *validator.Validate       // Validator for request data
 }
 
-// NewAuthController creates a new instance of AuthController.
 func NewAuthController(authService services.AuthService, userRepo repository.UserRepository) *AuthController {
 	return &AuthController{
 		authService: authService,
@@ -29,7 +28,17 @@ func NewAuthController(authService services.AuthService, userRepo repository.Use
 	}
 }
 
-// RegisterUser handles user registration.
+// @Summary Register a new user
+// @Description Register a new user with email and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body models.UserRegisterRequest true "User registration data"
+// @Success 201 {object} models.TokenResponse "User successfully registered"
+// @Failure 400 {object} models.ErrorResponse "Invalid request data"
+// @Failure 409 {object} models.ErrorResponse "User already exists"
+// @Failure 500 {object} models.ErrorResponse "Could not create user"
+// @Router /register [post]
 func (ac *AuthController) RegisterUser(c *gin.Context) {
 	var requestData struct {
 		Email    string `json:"email" validate:"required,email"`    // User's email
@@ -76,6 +85,17 @@ func (ac *AuthController) RegisterUser(c *gin.Context) {
 }
 
 // LoginUser handles user login.
+// @Summary Login a user
+// @Description Login a user with email and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body models.UserRegisterRequest true "User login data"
+// @Success 200 {object} models.TokenResponse "Login successful, token generated"
+// @Failure 400 {object} models.ErrorResponse "Invalid request data"
+// @Failure 401 {object} models.ErrorResponse "Invalid email or password"
+// @Failure 500 {object} models.ErrorResponse "Could not generate token"
+// @Router /login [post]
 func (ac *AuthController) LoginUser(c *gin.Context) {
 	var loginData struct {
 		Email    string `json:"email" validate:"required,email"`    // User's email
