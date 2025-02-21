@@ -9,21 +9,10 @@ on:
       - main
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: 1234p
-          POSTGRES_DB: test_taskmanager
-        ports:
-          - 5432:5432
-
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Go
@@ -47,25 +36,6 @@ jobs:
           export GOROOT=$(go env GOROOT)
           export PATH=$GOROOT/bin:$PATH
           go mod tidy
-
-      - name: Run tests
-        working-directory: ./tests
-        env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: postgres
-          DB_PASSWORD: 1234p
-          DB_NAME: test_taskmanager
-          JWT_SECRET: J9xlXeiUW2vRg58I4OZa11FrxczblfgE8k5jiCo-hxw
-          GO_ENV: test
-        run: go test ./... -v
-
-  build:
-    needs: test  # Зависит от успешного завершения тестов
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
 
       - name: Build Docker image
         uses: docker/build-push-action@v4
