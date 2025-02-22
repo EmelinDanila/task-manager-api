@@ -29,7 +29,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.23
+          go-version: 1.20
           cache: true
 
       - name: Verify Go installation
@@ -39,7 +39,7 @@ jobs:
           which go
 
       - name: Install dependencies
-        run: go mod tidy  # ❌ Убрали `working-directory: $GITHUB_WORKSPACE`
+        run: go mod tidy
 
       - name: Run tests
         env:
@@ -51,7 +51,7 @@ jobs:
           TEST_DB_NAME: test_taskmanager
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           GO_ENV: test
-        run: go test ./... -v  # ❌ Убрали `working-directory: $GITHUB_WORKSPACE/tests`
+        run: go test ./... -v
 
   build:
     needs: test
@@ -59,6 +59,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
       - name: Build and run containers
         run: docker-compose up --build -d
