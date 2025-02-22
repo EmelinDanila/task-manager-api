@@ -39,11 +39,9 @@ jobs:
           which go
 
       - name: Install dependencies
-        working-directory: $GITHUB_WORKSPACE
-        run: go mod tidy
+        run: go mod tidy  # ❌ Убрали `working-directory: $GITHUB_WORKSPACE`
 
       - name: Run tests
-        working-directory: $GITHUB_WORKSPACE/tests
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -53,7 +51,7 @@ jobs:
           TEST_DB_NAME: test_taskmanager
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           GO_ENV: test
-        run: go test ./... -v
+        run: go test ./... -v  # ❌ Убрали `working-directory: $GITHUB_WORKSPACE/tests`
 
   build:
     needs: test
