@@ -2,10 +2,10 @@ package config
 
 import (
 	"fmt"
-	"log"
+	//"log"
 	"os"
 
-	"github.com/joho/godotenv"
+	//"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -35,6 +35,7 @@ func (r *RealDB) GetDB() *gorm.DB {
 	return r.db
 }
 
+/*
 // LoadEnvVars loads environment variables from the .env file
 func LoadEnvVars() {
 	err := godotenv.Load(".env")
@@ -42,6 +43,7 @@ func LoadEnvVars() {
 		log.Fatal("Error loading .env file")
 	}
 }
+*/
 
 // getDatabaseName returns the correct database name based on the GO_ENV value
 func getDatabaseName() string {

@@ -30,7 +30,7 @@ import (
 // @description Use 'Bearer' followed by your JWT token. Example: "Bearer your_token_here"
 
 func main() {
-	config.LoadEnvVars()
+	//config.LoadEnvVars()
 
 	db, err := config.ConnectDatabase()
 	if err != nil {

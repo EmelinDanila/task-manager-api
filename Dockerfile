@@ -1,35 +1,34 @@
-# We use the official GO image for assembly
+# Используем официальный образ Go для сборки
 FROM golang:1.23-alpine AS builder
 
-# Install the working directory
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Copy Go.mod and Go.sum files to install dependencies
+# Копируем файлы go.mod и go.sum для установки зависимостей
 COPY go.mod go.sum ./
 
-# Set dependencies
+# Загружаем зависимости
 RUN go mod download
 
-# Copy the entire project to the container
+# Копируем весь проект
 COPY . .
 
-# We collect the application
+# Собираем приложение
 RUN go build -o task-manager-api .
 
-# We use the minimum Alpine image for the final container
+# Финальный контейнер
 FROM alpine:latest
 
-# Install the working directory
 WORKDIR /app
 
-# Copy the collected binary file
+# Копируем собранный бинарник
 COPY --from=builder /app/task-manager-api .
 
-# Copy the .env file
-COPY .env . 
+# Загружаем переменные окружения
+ENV GO_ENV=production
 
-# Indicate the port that will use the application
+# Указываем порт
 EXPOSE 8080
 
-# Team to launch the application
+# Запускаем приложение
 CMD ["./task-manager-api"]

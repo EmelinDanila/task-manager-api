@@ -9,43 +9,64 @@ on:
       - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 1234p
+          POSTGRES_DB: test_taskmanager
+        ports:
+          - 5432:5432
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.23'
+          go-version: 1.23
           cache: true
 
       - name: Verify Go installation
         run: |
-          echo "Go version:"
           go version
-          echo "Go environment:"
           go env
           which go
-          export GOROOT=$(go env GOROOT)
-          export PATH=$GOROOT/bin:$PATH
 
       - name: Install dependencies
-        run: |
-          export GOROOT=$(go env GOROOT)
-          export PATH=$GOROOT/bin:$PATH
-          go mod tidy
+        working-directory: $GITHUB_WORKSPACE
+        run: go mod tidy
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: false
-          tags: your-app-name:latest
+      - name: Run tests
+        working-directory: $GITHUB_WORKSPACE/tests
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: 1234p
+          DB_NAME: test_taskmanager
+          TEST_DB_NAME: test_taskmanager
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          GO_ENV: test
+        run: go test ./... -v
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build and run containers
+        run: docker-compose up --build -d
 
   deploy:
-    needs: build  # Зависит от успешной сборки Docker-образа
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Install Railway CLI

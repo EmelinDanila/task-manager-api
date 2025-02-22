@@ -14,7 +14,7 @@ import (
 func SetupTestDB(t *testing.T) config.Database {
 	// Load environment variables
 	os.Setenv("GO_ENV", "test")
-	config.LoadEnvVars()
+	//config.LoadEnvVars()
 
 	// Connect to the database
 	db, err := config.ConnectDatabase()
