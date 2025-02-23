@@ -54,20 +54,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Login to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build and push Docker image
+      - name: Install Docker Compose
         run: |
-          REPO_NAME=$(echo "${{ github.repository_owner }}/task-manager-api" | tr '[:upper:]' '[:lower:]')
-          docker build -t ghcr.io/$REPO_NAME:latest .
-          docker push ghcr.io/$REPO_NAME:latest
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Northflank
-        run: |
-          curl -X POST "https://api.northflank.com/v1/projects/your-project-id/services/your-service-id/deploy" \
-          -H "Authorization: Bearer ${{ secrets.NORTHFLANK_API_KEY }}"
+      - name: Build and run containers
+        run: docker-compose up --build -d

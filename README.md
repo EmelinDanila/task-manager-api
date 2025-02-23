@@ -1,63 +1,67 @@
+# Task Manager API
 
- Task Manager API
-================
+Task Manager API is a RESTful API for managing tasks. It allows users to create, update, delete, and view tasks. The application is built with Go, using PostgreSQL for the database and JWT for authentication.
 
-Task Manager API is a RESTful API for managing tasks. The application will allow users to create, update, delete, and view tasks. It will use Go for the backend, PostgreSQL for the database, and JWT for authentication.
+## Technologies Used
 
-Technologies
--------------
+- **Go** — Main programming language.
+- **PostgreSQL** — Database for storing tasks.
+- **JWT** — User authentication.
+- **Gin** — Web framework for handling HTTP requests.
+- **Swagger** — API documentation.
+- **Docker** — Containerization of the application.
 
-- Go — main programming language.
-- PostgreSQL — database for storing task data.
-- JWT (JSON Web Tokens) — for user authentication and authorization.
-- Gin — web framework for handling HTTP requests.
-- Swagger — API documentation.
-- Docker — containerization of the application.
+---
 
-Description
------------
+## Installation and Running with Docker Compose
 
-The goal of this project is to build a simple Task Manager API with the following features:
-- User registration and login (JWT authentication).
-- CRUD operations for managing tasks.
-- Data validation for all inputs.
-- API documentation using Swagger.
+### **Prerequisites**
+- Installed [Git](https://git-scm.com/)
+- Installed [Docker](https://www.docker.com/)
+- Installed [Docker Compose](https://docs.docker.com/compose/)
 
-Installation
-------------
+### **Steps**
+1. **Clone the repository**
+   ```sh
+   git clone https://github.com/your-username/task-manager-api.git
+   cd task-manager-api
+   ```
 
-### Prerequisites
+2. **Start the containers**
+   ```sh
+   docker-compose up --build -d
+   ```
 
-- Go (1.18 or higher)
-- PostgreSQL
-- Docker (for containerization)
+3. **Check running containers**
+   ```sh
+   docker ps
+   ```
 
-### Steps to Run Locally
+4. **API is now available at**
+   ```
+   http://localhost:8080
+   ```
 
-1. Clone the repository:
-```bash
-git clone https://github.com/your-username/task-manager-api.git   
+---
+
+## Main API Endpoints
+
+| Method  | Endpoint        | Description                                | Authentication |
+|---------|----------------|--------------------------------------------|---------------|
+| `POST`  | `/register`    | Register a new user                       | ❌            |
+| `POST`  | `/login`       | Authenticate user, receive JWT token      | ❌            |
+| `GET`   | `/tasks`       | Get all tasks for the authenticated user  | ✅            |
+| `POST`  | `/tasks`       | Create a new task                         | ✅            |
+| `PUT`   | `/tasks/{id}`  | Update a task                             | ✅            |
+| `DELETE`| `/tasks/{id}`  | Delete a task                             | ✅            |
+
+🔹 **Swagger documentation is available at:**  
+```
+http://localhost:8080/swagger/index.html
 ```
 
-2.Navigate to the project directory:
-```bash
-cd task-manager-api
-```
+---
 
-3.Set up environment variables for the database connection and JWT secret.
+## License
 
-4.Run the application using Docker or directly with Go.
-
-Endpoints (Planned)
-```bash
-POST /api/register — register a new user.
-POST /api/login — authenticate a user and receive a JWT.
-GET /api/tasks — get all tasks (authentication required).
-POST /api/tasks — create a new task (authentication required).
-PUT /api/tasks/{id} — update a task (authentication required).
-DELETE /api/tasks/{id} — delete a task (authentication required).
-```
-
-License
----------
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License.
