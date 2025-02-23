@@ -23,7 +23,7 @@ Task Manager API is a RESTful API for managing tasks. It allows users to create,
 ### Steps
 1. **Clone the repository**
    ```sh
-   git clone https://github.com/your-username/task-manager-api.git
+   git clone https://github.com/EmelinDanila/task-manager-api.git
    cd task-manager-api
    ```
 
