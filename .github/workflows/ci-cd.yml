@@ -32,12 +32,6 @@ jobs:
           go-version: 1.23
           cache: true
 
-      - name: Verify Go installation
-        run: |
-          go version
-          go env
-          which go
-
       - name: Install dependencies
         run: go mod tidy
 
@@ -60,22 +54,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Build and run containers
-        run: docker-compose up --build -d
+      - name: Build and push Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository_owner }}/task-manager-api:latest .
+          docker push ghcr.io/${{ github.repository_owner }}/task-manager-api:latest
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Deploy to Railway
-        run: railway up --detach
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Deploy to Northflank
+        run: |
+          curl -X POST "https://api.northflank.com/v1/projects/your-project-id/services/your-service-id/deploy" \
+          -H "Authorization: Bearer ${{ secrets.NORTHFLANK_API_KEY }}"

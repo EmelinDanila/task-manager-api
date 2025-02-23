@@ -3,9 +3,9 @@ services:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: task_manager
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234p
+      POSTGRES_DB: taskmanager
     ports:
       - "5432:5432"
     volumes:
@@ -20,9 +20,9 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_USER: admin
-      DB_PASSWORD: password
-      DB_NAME: task_manager
+      DB_USER: postgres
+      DB_PASSWORD: 1234p
+      DB_NAME: taskmanager
       TEST_DB_NAME: test_taskmanager
       JWT_SECRET: J9xlXeiUW2vRg58I4OZa11FrxczblfgE8k5jiCo-hxw
       GO_ENV: production
