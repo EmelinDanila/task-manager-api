@@ -1,26 +1,26 @@
 # Task Manager API
 
-Task Manager API is a RESTful API for managing tasks. It allows users to create, update, delete, and view tasks. The application is built with Go, using PostgreSQL for the database and JWT for authentication.
+Task Manager API is a RESTful API for managing tasks. It allows users to create, update, delete, and view tasks. The application is written in Go using PostgreSQL for the database and JWT for authentication.
 
 ## Technologies Used
 
-- **Go** — Main programming language.
-- **PostgreSQL** — Database for storing tasks.
-- **JWT** — User authentication.
-- **Gin** — Web framework for handling HTTP requests.
+- **Go** — main programming language.
+- **PostgreSQL** — database for storing tasks.
+- **JWT** — user authentication.
+- **Gin** — web framework for handling HTTP requests.
 - **Swagger** — API documentation.
-- **Docker** — Containerization of the application.
+- **Docker** — application containerization.
 
 ---
 
 ## Installation and Running with Docker Compose
 
-### **Prerequisites**
+### Requirements
 - Installed [Git](https://git-scm.com/)
 - Installed [Docker](https://www.docker.com/)
 - Installed [Docker Compose](https://docs.docker.com/compose/)
 
-### **Steps**
+### Steps
 1. **Clone the repository**
    ```sh
    git clone https://github.com/your-username/task-manager-api.git
@@ -37,7 +37,7 @@ Task Manager API is a RESTful API for managing tasks. It allows users to create,
    docker ps
    ```
 
-4. **API is now available at**
+4. **The API is now available at**
    ```
    http://localhost:8080
    ```
@@ -46,16 +46,16 @@ Task Manager API is a RESTful API for managing tasks. It allows users to create,
 
 ## Main API Endpoints
 
-| Method  | Endpoint        | Description                                | Authentication |
-|---------|----------------|--------------------------------------------|---------------|
-| `POST`  | `/register`    | Register a new user                       | ❌            |
-| `POST`  | `/login`       | Authenticate user, receive JWT token      | ❌            |
-| `GET`   | `/tasks`       | Get all tasks for the authenticated user  | ✅            |
-| `POST`  | `/tasks`       | Create a new task                         | ✅            |
-| `PUT`   | `/tasks/{id}`  | Update a task                             | ✅            |
-| `DELETE`| `/tasks/{id}`  | Delete a task                             | ✅            |
+| Method  | Endpoint       | Description                                 | Authentication |
+|---------|--------------|---------------------------------------------|---------------|
+| `POST`  | `/register`  | Register a new user                        | No            |
+| `POST`  | `/login`     | User authentication, obtain JWT            | No            |
+| `GET`   | `/tasks`     | Get all tasks for the current user         | Yes           |
+| `POST`  | `/tasks`     | Create a new task                          | Yes           |
+| `PUT`   | `/tasks/{id}`| Update a task                              | Yes           |
+| `DELETE`| `/tasks/{id}`| Delete a task                              | Yes           |
 
-🔹 **Swagger documentation is available at:**  
+Swagger documentation is available at:
 ```
 http://localhost:8080/swagger/index.html
 ```
